@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
     Dimensions,
     Image,
@@ -22,7 +22,30 @@ interface LocalImage {
 }
 
 export default function App() {
+    const [contextLogo, setContextLogo] = useState(null as any);
     const [selectedImage, setSelectedImage] = useState<LocalImage | null>(null);
+
+    useEffect(() => {
+        fetchRandomImage();
+    }, []);
+
+    const fetchRandomImage = async () => {
+        const headers = new Headers();
+        headers.append(
+            "Authorization",
+            "ML753BSmTZzdvu7dJgJ05RPoCGRBWRdddRv1FD9bVjQ"
+        );
+        const parms = {
+            method: "GET",
+            headers,
+        };
+        const response = await fetch(
+            "https://api.unsplash.com/photos/random?client_id=MBHpyxQMkz8yn9nnolr0rWUZ0lm0FX_n47ZgZ8RBX_I",
+            parms
+        );
+        const contextLogoJson = await response.json();
+        setContextLogo(contextLogoJson);
+    };
 
     const openImagePickerAsync = async () => {
         const permissionResult =
@@ -39,8 +62,9 @@ export default function App() {
         const imageObj = { localUri: pickerResult.uri } as LocalImage;
 
         if (Platform.OS === "web") {
-            const remoteUri = await uploadToAnonymousFilesAsync(pickerResult.uri);
-            console.log(remoteUri);
+            const remoteUri = await uploadToAnonymousFilesAsync(
+                pickerResult.uri
+            );
             imageObj.remoteUri = remoteUri;
         }
 
@@ -49,11 +73,15 @@ export default function App() {
 
     const openShareDialogAsync = async () => {
         if (!(await Sharing.isAvailableAsync()) || selectedImage === null) {
-            alert(`Sharing not available...your image is here: ${selectedImage?.remoteUri}`);
+            alert(
+                `Sharing not available...your image is here: ${selectedImage?.remoteUri}`
+            );
             return;
         }
 
-        await Sharing.shareAsync(selectedImage.remoteUri ?? selectedImage.localUri);
+        await Sharing.shareAsync(
+            selectedImage.remoteUri ?? selectedImage.localUri
+        );
     };
 
     return (
@@ -61,8 +89,11 @@ export default function App() {
             <View style={styles.text}>
                 <Text>Hey, select one image!</Text>
             </View>
-            {selectedImage === null && (
+            {selectedImage === null && contextLogo === null && (
                 <Image source={img} style={styles.image} resizeMode="contain" />
+            )}
+            {selectedImage === null && contextLogo !== null && (
+                <Image source={{uri: contextLogo.urls.small}} style={styles.image} resizeMode="contain" />
             )}
             {selectedImage !== null && (
                 <Image
@@ -73,6 +104,7 @@ export default function App() {
                     resizeMode="contain"
                 />
             )}
+            
 
             <View style={styles.actions}>
                 <TouchableOpacity
